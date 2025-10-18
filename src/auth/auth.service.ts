@@ -37,8 +37,8 @@ export class AuthService {
 
     // Xác thực và đăng nhập
     async login(dto: LoginDto) {
-        
         const user = await this.prisma.user.findUnique({ where: { email: dto.email} });
+        
         if (!user || !(await bcrypt.compare(dto.password, user.passwordHash))) {
         throw new UnauthorizedException('Email or password is incorrect');
         }

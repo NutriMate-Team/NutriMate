@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateWorkoutLogDto } from './dto/create-workout-log.dto';
 import { UpdateWorkoutLogDto } from './dto/update-workout-log.dto';
 import { PrismaService } from 'src/prisma/prisma.services'; 
@@ -8,10 +8,24 @@ export class WorkoutLogService {
   constructor(private prisma: PrismaService) {}
 
   // POST: Tạo một nhật ký tập luyện mới
-  create(createWorkoutLogDto: CreateWorkoutLogDto) {
-    // Prisma tự động xử lý các mối quan hệ (userId, exerciseId)
+  async create(createWorkoutLogDto: CreateWorkoutLogDto) {
+    const { exerciseId, durationMin, ...rest } = createWorkoutLogDto;
+
+    const exercise = await this.prisma.exercise.findUnique({
+        where: { id: exerciseId },
+        select: { caloriesBurnedPerHour: true } 
+    });
+
+    if (!exercise) {
+        throw new NotFoundException(`Exercise with ID ${exerciseId} not found.`);
+    }
+
+    // Calories Burned = Calories per hour * (Minutes Time / 60)
+    const totalCaloriesBurned = (exercise.caloriesBurnedPerHour / 60) * durationMin;
+
+
     return this.prisma.workoutLog.create({
-      data: createWorkoutLogDto,
+      data: { ...rest, exerciseId, durationMin, totalCaloriesBurned: totalCaloriesBurned },
     });
   }
 

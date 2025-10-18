@@ -55,6 +55,8 @@ model MealLog {
   mealType   String
   loggedAt   DateTime @default(now())
 
+  totalCalories    Float?   
+
   user       User     @relation(fields: [userId], references: [id])
   food       Food     @relation(fields: [foodId], references: [id])
 }
@@ -75,6 +77,8 @@ model WorkoutLog {
   durationMin      Float
   caloriesBurned   Float
   loggedAt         DateTime @default(now())
+
+  totalCaloriesBurned   Float?
 
   user             User       @relation(fields: [userId], references: [id])
   exercise         Exercise   @relation(fields: [exerciseId], references: [id])

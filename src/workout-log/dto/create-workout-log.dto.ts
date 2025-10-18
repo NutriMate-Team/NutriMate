@@ -1,4 +1,4 @@
-import { IsNumber, IsNotEmpty, IsUUID } from 'class-validator';
+import { IsNumber, IsNotEmpty, IsUUID, IsOptional } from 'class-validator';
 
 export class CreateWorkoutLogDto {
     @IsNotEmpty()
@@ -14,4 +14,8 @@ export class CreateWorkoutLogDto {
 
     @IsNumber()
     caloriesBurned!: number; 
+
+    @IsOptional()
+    @IsNumber()
+    totalCaloriesBurned?: number;
 }

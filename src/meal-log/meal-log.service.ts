@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateMealLogDto } from './dto/create-meal-log.dto';
 import { UpdateMealLogDto } from './dto/update-meal-log.dto';
 import { PrismaService } from 'src/prisma/prisma.services'; 
@@ -8,9 +8,25 @@ export class MealLogService {
   constructor(private prisma: PrismaService) {}
 
   // POST: Tạo một nhật ký bữa ăn mới
-  create(createMealLogDto: CreateMealLogDto) {
+  async create(createMealLogDto: CreateMealLogDto) {
+    const { foodId, quantity, ...rest } = createMealLogDto;
+
+    // find food information
+    const food = await this.prisma.food.findUnique({
+      where: { id: foodId },
+      select: { calories: true }
+    });
+
+    if(!food) {
+      throw new NotFoundException(`Food with ID ${foodId} not found.`);
+    }
+
+    // Calories Calculate
+    const calculatedCalories = (food.calories / 100) * quantity;    
+
+
     return this.prisma.mealLog.create({
-      data: createMealLogDto,
+      data: { ...rest, foodId, quantity, totalCalories: calculatedCalories,},
     });
   }
 

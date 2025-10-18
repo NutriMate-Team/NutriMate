@@ -1,4 +1,4 @@
-import { IsNumber, IsNotEmpty, IsUUID, IsString } from 'class-validator';
+import { IsNumber, IsNotEmpty, IsUUID, IsString, IsOptional } from 'class-validator';
 
 export class CreateMealLogDto {
     @IsNotEmpty()
@@ -15,4 +15,8 @@ export class CreateMealLogDto {
     @IsNotEmpty()
     @IsString()
     mealType!: string;
+
+    @IsOptional()
+    @IsNumber()
+    totalCalories?: number;
 }

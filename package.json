@@ -24,7 +24,7 @@
     "db:reset": "prisma migrate reset --force",
     "db:generate": "prisma generate",
     "// Seed Scripts": "--------------------------------------",
-    "seed": "ts-node prisma/seed.ts",
+    "seed": "ts-node src/prisma/seed.ts",
     "seed:build": "node dist/seed.js"
   },
   "dependencies": {
@@ -91,6 +91,6 @@
     "testEnvironment": "node"
   },
   "prisma": {
-    "seed": "ts-node prisma/seed.ts"
+    "seed": "ts-node src/prisma/seed.ts"
   }
 }

@@ -106,7 +106,7 @@ $ pnpm install @nestjs/config
 
 ## Migrate DB
 ```bash
-$ npx prisma migrate dev --name init_db
+$ npx prisma migrate dev --name init_db --schema="Path"
 ```
 
 ## Check DB

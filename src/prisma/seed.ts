@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { foodSeedData } from './seeds/foods.seed';
 import { exerciseSeedData } from './seeds/exercises.seed';
 import { userSeedData } from './seeds/users.seed';
-import { userProfileSeedData } from 'src/prisma/seeds/user-profile.seed';
+import { userProfileSeedData } from './seeds/user-profile.seed';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();

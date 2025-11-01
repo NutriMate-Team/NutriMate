@@ -1,7 +1,7 @@
 import * as bcrypt from 'bcrypt';
 
 export const userSeedData = async () => {
-  const passwordHash = await bcrypt.hash('Hoanglong123', 20);
+  const passwordHash = await bcrypt.hash('Hoanglong123', 10);
 
   return [
     {

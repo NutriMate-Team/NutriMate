@@ -1,37 +1,42 @@
 import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { PrismaService } from 'src/prisma/prisma.services';
+import { PrismaService } from '../../src/prisma/prisma.services'; 
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import { UserService } from 'src/user/user.service';
+
 
 @Injectable()
 export class AuthService {
+
     constructor(
         private prisma: PrismaService,
-        private JwtService: JwtService,
+        private jwtService: JwtService, 
     ) {}
     
-    // Đăng ký người dùng
+
     async register (dto: RegisterDto) {
+
         const existingUser = await this.prisma.user.findUnique({ where: { email: dto.email} });
         if (existingUser) {
             throw new BadRequestException('Email Already in use');
         }
 
-        const salt = await bcrypt.genSalt();
+
+        const salt = await bcrypt.genSalt(); 
         const passwordHash = await bcrypt.hash(dto.password, salt);
 
+
         const user = await this.prisma.user.create({
-           data: {
-            email: dto.email,
-            passwordHash: passwordHash,
-            fullName: dto.fullname,
-            gender: dto.gender,
-            dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : null,
-           },
-           select: { id: true, email: true, fullName: true}, 
+            data: {
+                email: dto.email,
+                passwordHash: passwordHash,
+                // Sửa lỗi: Đảm bảo khớp với trường "fullName" trong DTO và Schema
+                fullName: dto.fullname, 
+                gender: dto.gender,
+                dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : null,
+            },
+            select: { id: true, email: true, fullName: true}, 
         });
         return user;
     }
@@ -40,20 +45,21 @@ export class AuthService {
     async login(dto: LoginDto) {
         const user = await this.prisma.user.findUnique({ where: { email: dto.email} });
         
-        if (!user || !(await bcrypt.compare(dto.password, user.passwordHash))) {
-        throw new UnauthorizedException('Email or password is incorrect');
-        }
 
+        if (!user || !(await bcrypt.compare(dto.password, user.passwordHash))) {
+            throw new UnauthorizedException('Email or password is incorrect');
+        }
+        
+        // 2. Tạo Payload JWT
         const payload = {
             email: user.email,
-            sub: user.id
+            sub: user.id // sub là ID người dùng
         };
 
-        // JWT Token
+
         return {
-            access_token: this.JwtService.sign(payload),
-            user: { id: user.id, email: user.email, fullname: user.fullName},
+            access_token: this.jwtService.sign(payload),
+            user: { id: user.id, email: user.email, fullName: user.fullName}, 
         };
     }
-
 }

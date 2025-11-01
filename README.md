@@ -112,6 +112,7 @@ $ npx prisma migrate dev --name init_db --schema="Path"
 ## Check DB
 ```bash
 $ npx prisma studio
+npx prisma studio --schema=C:\Users\GreenManNK\Documents\Code\NutriMate\src\prisma\schema.prisma
 ```
 
 ## Build dist & run

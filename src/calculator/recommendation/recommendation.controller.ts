@@ -1,24 +1,23 @@
-import { Controller, Get, Param, UseGuards, Request } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
+import { Controller, Get, UseGuards, Req } from '@nestjs/common';
 import { RecommendationService } from './recommendation.service';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard'; 
 
 @Controller('recommendation')
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(JwtAuthGuard) 
 export class RecommendationController {
-    constructor(private readonly recommendationService: RecommendationService) {}
+  constructor(
+    private readonly recommendationService: RecommendationService,
+  ) {}
 
-    // Route for create or calculate recommendation
-    @Get('generate')
-    async generate(@Request() req: any) {
-        // get User ID form JWT PayLoad (req.user got help from JwtStrategy)
-        const userId = req.user.id;
-        return this.recommendationService.generateRecommendation(userId);
-    }
+  @Get('generate')
+  async generate(@Req() req) {
+    const userId = req.user.id;
+    return this.recommendationService.generateRecommendation(userId);
+  }
 
-    // Route get latest recommendation
-    @Get('latest')
-    async findLatest(@Request() req: any) {
-        const userId = req.user.id;
-        return this.recommendationService.findLatestRecommendation(userId);
-    }
+  @Get('latest')
+  async findLatest(@Req() req) {
+    const userId = req.user.id;
+    return this.recommendationService.findLatestRecommendation(userId);
+  }
 }

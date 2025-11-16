@@ -115,7 +115,7 @@ model WorkoutLog {
 
 model Recommendation {
   id                  String   @id @default(uuid())
-  userId              String
+  userId              String   @unique
   recommendedCalories Float?
   recommendedExercise String?
   generatedAt         DateTime @default(now())

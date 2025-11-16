@@ -1,10 +1,16 @@
+// file: src/user-profile/user-profile.service.ts
+
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.services';
 import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
+import { RecommendationService } from 'src/calculator/recommendation/recommendation.service'; 
 
 @Injectable()
 export class UserProfileService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private recommendationService: RecommendationService,
+  ) {}
 
   async updateProfile(userId: string, dto: UpdateUserProfileDto) {
     const { weightKg, heightCm, ...rest } = dto;
@@ -12,31 +18,32 @@ export class UserProfileService {
     let bmi: number | undefined = undefined;
 
     if (weightKg && heightCm) {
-      // Công thức BMI = Cân nặng (kg) / (Chiều cao (m) * Chiều cao (m))
       const heightInMeters = heightCm / 100;
       bmi = parseFloat(
         (weightKg / (heightInMeters * heightInMeters)).toFixed(2),
       );
     }
 
-    return this.prisma.userProfile.upsert({
-      where: { userId: userId }, 
+    const updatedProfile = await this.prisma.userProfile.upsert({
+      where: { userId: userId },
       create: {
-        // Nếu tạo mới
         userId: userId,
         weightKg: weightKg,
         heightCm: heightCm,
         ...rest,
-        bmi: bmi, // Lưu BMI đã tính
+        bmi: bmi,
       },
       update: {
-        // Nếu cập nhật
         weightKg: weightKg,
         heightCm: heightCm,
         ...rest,
-        bmi: bmi, // Cập nhật BMI
+        bmi: bmi,
       },
     });
+
+    this.recommendationService.generateRecommendation(userId);
+
+    return updatedProfile;
   }
 
   async getProfile(userId: string) {
@@ -49,5 +56,4 @@ export class UserProfileService {
     }
     return profile;
   }
-
 }

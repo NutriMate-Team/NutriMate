@@ -1,4 +1,6 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+// file: src/food/food.controller.ts
+
+import { Controller, Get, Query, UseGuards, Param, } from '@nestjs/common';
 import { FoodService } from './food.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { IsNotEmpty, IsString } from 'class-validator';
@@ -24,5 +26,11 @@ export class FoodController {
     ]);
 
     return [...localResults, ...externalResults];
+  }
+
+  // BARCODE SEARCH
+  @Get('barcode/:code')
+  async searchByBarcode(@Param('code') code: string) {
+    return this.foodService.searchByBarcode(code);
   }
 }

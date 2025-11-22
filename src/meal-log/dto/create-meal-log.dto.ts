@@ -1,7 +1,7 @@
-import { IsNumber, IsNotEmpty, IsUUID, IsString, Min } from 'class-validator';
+import { IsNumber, IsNotEmpty, IsString, Min, IsOptional } from 'class-validator';
 
 export class CreateMealLogDto {
-  @IsUUID('4', { message: 'foodId phải là một UUID hợp lệ.' })
+  @IsString({ message: 'foodId phải là chuỗi ký tự.' })
   @IsNotEmpty({ message: 'foodId không được để trống.' })
   foodId!: string; 
 
@@ -12,4 +12,28 @@ export class CreateMealLogDto {
   @IsNotEmpty({ message: 'Loại bữa ăn không được để trống.' })
   @IsString()
   mealType!: string; 
+
+  @IsOptional()
+  @IsString()
+  source?: string; // 'usda' | 'openfoodfacts' | 'local'
+
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsNumber()
+  calories?: number;
+
+  @IsOptional()
+  @IsNumber()
+  protein?: number;
+
+  @IsOptional()
+  @IsNumber()
+  fat?: number;
+
+  @IsOptional()
+  @IsNumber()
+  carbs?: number;
 }

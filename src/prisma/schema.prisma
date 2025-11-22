@@ -38,12 +38,12 @@ model UserProfile {
   user User @relation(fields: [userId], references: [id])
 }
 
-// === MODEL FOOD ĐÃ ĐƯỢC NÂNG CẤP CHI TIẾT ===
 model Food {
   id     String @id @default(uuid())
-  name   String @unique
+  name   String 
   source String @default("vietnam_nin")
   unit   String @default("100g")
+   externalId String?
 
   // === Macronutrients (Đa lượng) ===
   calories Float? // Kcal

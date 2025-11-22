@@ -1,8 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req } from '@nestjs/common';
 import { MealLogService } from './meal-log.service';
 import { CreateMealLogDto } from './dto/create-meal-log.dto';
 import { UpdateMealLogDto } from './dto/update-meal-log.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard'
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @UseGuards(JwtAuthGuard) 
 @Controller('meal-logs')

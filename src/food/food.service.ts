@@ -30,7 +30,6 @@ export class FoodService {
     (USDA)
    */
   async searchFoodFromUSDA(query: string) {
-    // ... (Code này giữ nguyên, không thay đổi)
     const apiKey = this.configService.get<string>('USDA_API_KEY');
     if (!apiKey) {
       this.logger.warn('Không tìm thấy USDA_API_KEY, bỏ qua tìm kiếm USDA.');

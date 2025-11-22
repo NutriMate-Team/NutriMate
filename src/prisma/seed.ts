@@ -88,7 +88,7 @@ async function main() {
   console.log('\n🥗 Seeding Foods from CSV...');
   await new Promise<void>((resolve, reject) => {
     const results: any[] = [];
- 
+  
     const csvFilePath = path.join(__dirname, 'foods_vn.csv');
 
     fs.createReadStream(csvFilePath)
@@ -128,14 +128,25 @@ async function main() {
             vitaminB6: toFloat(food['Vitamin B1']), 
           };
 
-          const existing = await prisma.food.findUnique({ where: { name: name } });
+          // --- SỬA LỖI TẠI ĐÂY ---
+          // Dùng findFirst thay vì findUnique vì 'name' không còn là unique
+          const existing = await prisma.food.findFirst({ where: { name: name } });
+          
           if (existing) {
-            await prisma.food.update({ where: { name: name }, data: foodData });
+            // Nếu tìm thấy, dùng ID của nó để update
+            await prisma.food.update({ 
+              where: { id: existing.id }, 
+              data: foodData 
+            });
             foodUpdated++;
           } else {
-            await prisma.food.create({ data: { name: name, ...foodData } });
+            // Nếu chưa có thì tạo mới
+            await prisma.food.create({ 
+              data: { name: name, ...foodData } 
+            });
             foodCreated++;
           }
+          // -----------------------
         }
         console.log(`✅ Foods seeding finished.`);
         resolve(); // Báo cho Promise biết là đã xong
@@ -146,7 +157,7 @@ async function main() {
   console.log('\n📊 Summary Report:');
   console.log(`👤 Users → ${userCreated} added, ${userUpdated} updated`);
   console.log(`📋 Profiles → ${profileCreated} added, ${profileUpdated} updated`);
-  console.log(`🥗 Foods → ${foodCreated} added, ${foodUpdated} updated`); // <-- SỐ NÀY SẼ KHÁC 0
+  console.log(`🥗 Foods → ${foodCreated} added, ${foodUpdated} updated`); 
   console.log(`🏋️ Exercises → ${exerciseCreated} added, ${exerciseUpdated} updated`);
   console.log('\n✅ All seeds loaded successfully!');
 }

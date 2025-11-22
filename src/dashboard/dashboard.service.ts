@@ -6,66 +6,72 @@ import dayjs from 'dayjs';
 export class DashBoardService {
   constructor(private prisma: PrismaService) {}
 
-  // get all information in 1 day (today is a default)
   async getDailySummary(userId: string, date: Date = new Date()) {
     const startOfDay = dayjs(date).startOf('day').toDate();
     const endOfDay = dayjs(date).endOf('day').toDate();
 
-    // Chạy 4 truy vấn song song để tăng hiệu suất
-    const [mealLogs, workoutLogs, profile, recommendation] =
-      await Promise.all([
-        this.prisma.mealLog.findMany({
-          where: {
-            userId: userId,
-            loggedAt: {
-              gte: startOfDay,
-              lte: endOfDay,
-            },
-          },
-        }),
+    // 1. LẤY DỮ LIỆU
+    const [mealLogs, workoutLogs, profile, recommendation] = await Promise.all([
+      this.prisma.mealLog.findMany({
+        where: { userId, loggedAt: { gte: startOfDay, lte: endOfDay } },
+        include: { food: true }, 
+      }),
+      this.prisma.workoutLog.findMany({
+        where: { userId, loggedAt: { gte: startOfDay, lte: endOfDay } },
+      }),
+      this.prisma.userProfile.findUnique({ where: { userId } }),
+      this.prisma.recommendation.findFirst({
+        where: { userId },
+        orderBy: { generatedAt: 'desc' },
+      }),
+    ]);
 
-        this.prisma.workoutLog.findMany({
-          where: {
-            userId: userId,
-            loggedAt: {
-              gte: startOfDay,
-              lte: endOfDay,
-            },
-          },
-        }),
+    // 2. TÍNH TOÁN CALO & MACRO
+    let caloriesConsumed = 0;
+    let totalProtein = 0;
+    let totalFat = 0;
+    let totalCarbs = 0;
 
-        this.prisma.userProfile.findUnique({ where: { userId } }),
+    mealLogs.forEach((log) => {
+      // Cộng calo (Lấy từ log đã lưu)
+      caloriesConsumed += log.totalCalories || 0;
 
-        this.prisma.recommendation.findFirst({
-          where: { userId },
-          orderBy: { generatedAt: 'desc' },
-        }),
-      ]);
+      // Cộng Macro (Tính từ Food gốc)
+      if (log.food) {
+        // Công thức: (Chất trong 100g / 100) * Số lượng thực tế
+        const proteinPerGram = (log.food.protein || 0) / 100;
+        const fatPerGram = (log.food.fat || 0) / 100;
+        const carbsPerGram = (log.food.carbs || 0) / 100;
 
-    const caloriesConsumed = mealLogs.reduce(
-      (sum, log) => sum + (log.totalCalories || 0), 
-      0,
-    );
+        totalProtein += proteinPerGram * log.quantity;
+        totalFat += fatPerGram * log.quantity;
+        totalCarbs += carbsPerGram * log.quantity;
+      }
+    });
 
     const caloriesBurned = workoutLogs.reduce(
-      (sum, log) => sum + (log.caloriesBurned || 0), 
+      (sum, log) => sum + (log.caloriesBurned || 0),
       0,
     );
-
     const netCalories = caloriesConsumed - caloriesBurned;
-    const targetCalories = recommendation?.recommendedCalories || null;
+    const targetCalories = recommendation?.recommendedCalories || 2000;
 
-    // return to synthetic information
+    // 3. TRẢ VỀ KẾT QUẢ
     return {
       date: dayjs(date).format('YYYY-MM-DD'),
       caloriesConsumed: parseFloat(caloriesConsumed.toFixed(2)),
       caloriesBurned: parseFloat(caloriesBurned.toFixed(2)),
       netCalories: parseFloat(netCalories.toFixed(2)),
       targetCalories: targetCalories,
-      remainingCalories: targetCalories
-        ? parseFloat((targetCalories - netCalories).toFixed(2))
-        : null,
+      remainingCalories: parseFloat(
+        (targetCalories - netCalories).toFixed(2),
+      ),
       bmi: profile?.bmi || null,
+      
+      // Trả về Macro đã tính
+      totalProtein: parseFloat(totalProtein.toFixed(1)),
+      totalFat: parseFloat(totalFat.toFixed(1)),
+      totalCarbs: parseFloat(totalCarbs.toFixed(1)),
     };
   }
 }

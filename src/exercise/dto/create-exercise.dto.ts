@@ -1,16 +1,15 @@
-import { IsString, IsNumber, IsNotEmpty } from "class-validator";
+import { IsString, IsNumber, IsNotEmpty } from 'class-validator';
 
 export class CreateExerciseDto {
-    @IsNotEmpty()
-    @IsString()
-    name!: string;
+  @IsNotEmpty()
+  @IsString()
+  name!: string;
 
-    @IsNumber()
-    @IsNotEmpty()
-    caloriesBurnedPerHour!: number;
+  @IsNumber()
+  @IsNotEmpty()
+  caloriesBurnedPerHour!: number;
 
-    @IsString()
-    @IsNotEmpty()
-    type!: string;
-
+  @IsString()
+  @IsNotEmpty()
+  type!: string;
 }

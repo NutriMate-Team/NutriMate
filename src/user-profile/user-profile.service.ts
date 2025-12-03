@@ -3,7 +3,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.services';
 import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
-import { RecommendationService } from 'src/calculator/recommendation/recommendation.service'; 
+import { RecommendationService } from 'src/calculator/recommendation/recommendation.service';
 
 @Injectable()
 export class UserProfileService {

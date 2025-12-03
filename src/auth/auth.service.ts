@@ -1,65 +1,168 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
-import { PrismaService } from '../../src/prisma/prisma.services'; 
-import { RegisterDto } from './dto/register.dto';
+import { randomBytes } from 'crypto';
+import { PrismaService } from '../../src/prisma/prisma.services';
+import { LinkSocialDto } from './dto/link-social.dto';
 import { LoginDto } from './dto/login.dto';
-
+import { RegisterDto } from './dto/register.dto';
+import {
+  SocialProvider,
+  SocialProviderField,
+} from './types/social-provider.enum';
+import { SocialProfilePayload } from './types/social-profile.interface';
 
 @Injectable()
 export class AuthService {
+  constructor(
+    private prisma: PrismaService,
+    private jwtService: JwtService,
+  ) {}
 
-    constructor(
-        private prisma: PrismaService,
-        private jwtService: JwtService, 
-    ) {}
-    
+  async register(dto: RegisterDto) {
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
+    if (existingUser) {
+      throw new BadRequestException('Email Already in use');
+    }
 
-    async register (dto: RegisterDto) {
+    const salt = await bcrypt.genSalt();
+    const passwordHash = await bcrypt.hash(dto.password, salt);
 
-        const existingUser = await this.prisma.user.findUnique({ where: { email: dto.email} });
-        if (existingUser) {
-            throw new BadRequestException('Email Already in use');
-        }
+    const user = await this.prisma.user.create({
+      data: {
+        email: dto.email,
+        passwordHash,
+        fullName: dto.fullname,
+        gender: dto.gender,
+        dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : null,
+      },
+      select: { id: true, email: true, fullName: true },
+    });
+    return user;
+  }
 
+  async login(dto: LoginDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
 
-        const salt = await bcrypt.genSalt(); 
-        const passwordHash = await bcrypt.hash(dto.password, salt);
+    if (!user || !(await bcrypt.compare(dto.password, user.passwordHash))) {
+      throw new UnauthorizedException('Email or password is incorrect');
+    }
 
+    return this.buildAuthResponse(user);
+  }
 
-        const user = await this.prisma.user.create({
-            data: {
-                email: dto.email,
-                passwordHash: passwordHash,
-                // Sửa lỗi: Đảm bảo khớp với trường "fullName" trong DTO và Schema
-                fullName: dto.fullname, 
-                gender: dto.gender,
-                dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : null,
-            },
-            select: { id: true, email: true, fullName: true}, 
+  async handleSocialLogin(
+    provider: SocialProvider,
+    profile: SocialProfilePayload,
+  ) {
+    if (!profile?.providerId) {
+      throw new UnauthorizedException('Invalid social profile returned');
+    }
+
+    const user = await this.upsertUserFromSocialProfile(provider, profile);
+    return this.buildAuthResponse(user);
+  }
+
+  async linkSocialAccount(userId: string, dto: LinkSocialDto) {
+    const field = this.resolveProviderField();
+
+    const conflict = await this.prisma.user.findFirst({
+      where: {
+        NOT: { id: userId },
+        [field]: dto.providerUserId,
+      },
+    });
+
+    if (conflict) {
+      throw new BadRequestException('This social account is already linked.');
+    }
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { [field]: dto.providerUserId },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        googleId: true,
+      },
+    });
+  }
+
+  private async upsertUserFromSocialProfile(
+    provider: SocialProvider,
+    profile: SocialProfilePayload,
+  ) {
+    const field = this.resolveProviderField();
+    const user = await this.prisma.user.findFirst({
+      where: { [field]: profile.providerId },
+    });
+
+    if (user) {
+      return user;
+    }
+
+    if (profile.email) {
+      const existingByEmail = await this.prisma.user.findUnique({
+        where: { email: profile.email },
+      });
+
+      if (existingByEmail) {
+        return this.prisma.user.update({
+          where: { id: existingByEmail.id },
+          data: { [field]: profile.providerId },
         });
-        return user;
+      }
     }
 
-    // Xác thực và đăng nhập
-    async login(dto: LoginDto) {
-        const user = await this.prisma.user.findUnique({ where: { email: dto.email} });
-        
+    const passwordHash = await bcrypt.hash(
+      this.createRandomPassword(),
+      await bcrypt.genSalt(),
+    );
 
-        if (!user || !(await bcrypt.compare(dto.password, user.passwordHash))) {
-            throw new UnauthorizedException('Email or password is incorrect');
-        }
-        
-        // 2. Tạo Payload JWT
-        const payload = {
-            email: user.email,
-            sub: user.id // sub là ID người dùng
-        };
+    const userPayload: Prisma.UserCreateInput = {
+      email:
+        profile.email ?? `${profile.provider}-${profile.providerId}@auth.local`,
+      passwordHash,
+      fullName: profile.fullName ?? 'Social User',
+      [field]: profile.providerId,
+    };
 
+    return this.prisma.user.create({
+      data: userPayload,
+    });
+  }
 
-        return {
-            access_token: this.jwtService.sign(payload),
-            user: { id: user.id, email: user.email, fullName: user.fullName}, 
-        };
-    }
+  private resolveProviderField(): SocialProviderField {
+    return 'googleId';
+  }
+
+  private buildAuthResponse(user: {
+    id: string;
+    email: string;
+    fullName: string;
+  }) {
+    const payload = {
+      email: user.email,
+      sub: user.id,
+    };
+
+    return {
+      access_token: this.jwtService.sign(payload),
+      user: { id: user.id, email: user.email, fullName: user.fullName },
+    };
+  }
+
+  private createRandomPassword() {
+    return randomBytes(16).toString('hex');
+  }
 }

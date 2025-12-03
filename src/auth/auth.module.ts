@@ -6,24 +6,28 @@ import { AuthController } from './auth.controller';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { JwtStrategy } from './jwt.strategy';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { GoogleStrategy } from './strategies/google.strategy';
 
 @Module({
-       imports: [PrismaModule, PassportModule, JwtModule.registerAsync({
-            imports: [ConfigModule],
+  imports: [
+    PrismaModule,
+    PassportModule,
+    ConfigModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
 
-            useFactory: async (configService: ConfigService) => ({
-                secret: configService.get('JWT_SECRET') ?? 'a_fallback_secret_key' ,
-                signOptions: {
-                    expiresIn: configService.get('JWT_EXPIRATION_TIME')  ?? '7d',
-                },
-            }),
-            inject: [ConfigService],
-        }),
-    ],
-    controllers: [AuthController],
-    providers: [AuthService, JwtStrategy],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get('JWT_SECRET') ?? 'a_fallback_secret_key',
+        signOptions: {
+          expiresIn: configService.get('JWT_EXPIRATION_TIME') ?? '7d',
+        },
+      }),
+      inject: [ConfigService],
+    }),
+  ],
+  controllers: [AuthController],
+  providers: [AuthService, JwtStrategy, GoogleStrategy],
 
-    exports: [AuthService, JwtModule, PassportModule]
+  exports: [AuthService, JwtModule, PassportModule],
 })
-
 export class AuthModule {}

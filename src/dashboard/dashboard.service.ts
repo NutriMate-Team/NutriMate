@@ -14,7 +14,7 @@ export class DashBoardService {
     const [mealLogs, workoutLogs, profile, recommendation] = await Promise.all([
       this.prisma.mealLog.findMany({
         where: { userId, loggedAt: { gte: startOfDay, lte: endOfDay } },
-        include: { food: true }, 
+        include: { food: true },
       }),
       this.prisma.workoutLog.findMany({
         where: { userId, loggedAt: { gte: startOfDay, lte: endOfDay } },
@@ -63,11 +63,9 @@ export class DashBoardService {
       caloriesBurned: parseFloat(caloriesBurned.toFixed(2)),
       netCalories: parseFloat(netCalories.toFixed(2)),
       targetCalories: targetCalories,
-      remainingCalories: parseFloat(
-        (targetCalories - netCalories).toFixed(2),
-      ),
+      remainingCalories: parseFloat((targetCalories - netCalories).toFixed(2)),
       bmi: profile?.bmi || null,
-      
+
       // Trả về Macro đã tính
       totalProtein: parseFloat(totalProtein.toFixed(1)),
       totalFat: parseFloat(totalFat.toFixed(1)),

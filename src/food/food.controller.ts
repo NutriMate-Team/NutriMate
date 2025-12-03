@@ -1,6 +1,6 @@
 // file: src/food/food.controller.ts
 
-import { Controller, Get, Query, UseGuards, Param, } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards, Param } from '@nestjs/common';
 import { FoodService } from './food.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { IsNotEmpty, IsString } from 'class-validator';

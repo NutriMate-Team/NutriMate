@@ -1,8 +1,8 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common'; 
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.services';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
-import { firstValueFrom, retry } from 'rxjs'; 
+import { firstValueFrom, retry } from 'rxjs';
 
 @Injectable()
 export class FoodService {
@@ -27,7 +27,7 @@ export class FoodService {
   }
 
   /**
-   * (USDA) 
+   * (USDA)
    */
   async searchFoodFromUSDA(query: string) {
     const apiKey = this.configService.get<string>('USDA_API_KEY');
@@ -46,7 +46,7 @@ export class FoodService {
 
     params.append('dataType', 'Foundation');
     params.append('dataType', 'SR Legacy');
-    params.append('dataType', 'Branded'); 
+    params.append('dataType', 'Branded');
 
     const finalUrl = `${baseUrl}?${params.toString()}`;
 
@@ -54,19 +54,24 @@ export class FoodService {
 
     try {
       const response = await firstValueFrom(
-        this.httpService.get(finalUrl).pipe(
-          retry(1) 
-        )
+        this.httpService.get(finalUrl).pipe(retry(1)),
       );
 
       if (!response.data || !Array.isArray(response.data.foods)) {
-        this.logger.error('⚠️ Phản hồi USDA không có định dạng JSON/foods mong đợi.');
-        const preview = JSON.stringify(response.data || 'null').substring(0, 100);
+        this.logger.error(
+          '⚠️ Phản hồi USDA không có định dạng JSON/foods mong đợi.',
+        );
+        const preview = JSON.stringify(response.data || 'null').substring(
+          0,
+          100,
+        );
         this.logger.debug(`Data Preview: ${preview}...`);
         return [];
       }
 
-      this.logger.log(`✅ USDA Thành công: Tìm thấy ${response.data.foods.length} kết quả`);
+      this.logger.log(
+        `✅ USDA Thành công: Tìm thấy ${response.data.foods.length} kết quả`,
+      );
 
       const getNutrient = (nutrients: any[], nutrientId: number) => {
         const nutrient = nutrients.find((n) => n.nutrientId === nutrientId);
@@ -106,7 +111,9 @@ export class FoodService {
       this.logger.error(`❌ Lỗi khi gọi API USDA: ${error.message}`);
       if (error.response) {
         this.logger.error(`👉 Status Code: ${error.response.status}`);
-        this.logger.error(`👉 Response Data: ${JSON.stringify(error.response.data).substring(0, 200)}...`);
+        this.logger.error(
+          `👉 Response Data: ${JSON.stringify(error.response.data).substring(0, 200)}...`,
+        );
       }
       return [];
     }
@@ -123,8 +130,14 @@ export class FoodService {
       const response = await firstValueFrom(this.httpService.get(url));
 
       // Kiểm tra nếu sản phẩm không tồn tại
-      if (!response.data || response.data.status === 0 || !response.data.product) {
-        throw new NotFoundException(`Không tìm thấy sản phẩm với mã vạch: ${barcode}`);
+      if (
+        !response.data ||
+        response.data.status === 0 ||
+        !response.data.product
+      ) {
+        throw new NotFoundException(
+          `Không tìm thấy sản phẩm với mã vạch: ${barcode}`,
+        );
       }
 
       // Lấy dữ liệu dinh dưỡng (nutriments)
@@ -133,10 +146,10 @@ export class FoodService {
       const nutriments = product.nutriments || {};
 
       return {
-        id: product.code, 
+        id: product.code,
         name: product.product_name || 'Không rõ tên',
         source: 'openfoodfacts',
-        unit: '100g', 
+        unit: '100g',
 
         calories: nutriments['energy-kcal_100g'],
         protein: nutriments.proteins_100g,
@@ -166,7 +179,9 @@ export class FoodService {
       if (error instanceof Error) {
         this.logger.error(`Lỗi khi gọi API OpenFoodFacts: ${error.message}`);
       } else {
-        this.logger.error(`Lỗi không xác định khi gọi API OpenFoodFacts: ${String(error)}`);
+        this.logger.error(
+          `Lỗi không xác định khi gọi API OpenFoodFacts: ${String(error)}`,
+        );
       }
       throw new Error('Lỗi tra cứu mã vạch.');
     }

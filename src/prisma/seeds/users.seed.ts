@@ -1,7 +1,7 @@
 export const userSeedData = async () => [
   {
     email: 'user1@nutrimate.com',
-    passwordHash: 'password123', 
+    passwordHash: 'password123',
     fullName: 'Người Dùng Một',
     gender: 'Nam',
     dateOfBirth: new Date('1990-01-15'),

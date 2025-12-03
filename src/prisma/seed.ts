@@ -6,7 +6,7 @@ import * as bcrypt from 'bcrypt';
 
 import fs from 'fs';
 import path from 'path';
-import csv from 'csv-parser'; 
+import csv from 'csv-parser';
 
 const prisma = new PrismaClient();
 
@@ -30,17 +30,21 @@ async function main() {
   let profileCreated = 0;
   let profileUpdated = 0;
 
-
   console.log('\n👤 Seeding Users...');
   const rawUsers = await userSeedData();
   const users: any[] = [];
   for (const user of rawUsers) {
-    const existing = await prisma.user.findUnique({ where: { email: user.email } });
+    const existing = await prisma.user.findUnique({
+      where: { email: user.email },
+    });
     const salt = await bcrypt.genSalt();
     const passwordHash = await bcrypt.hash(user.passwordHash, salt);
     const userData = { ...user, passwordHash: passwordHash };
     if (existing) {
-      await prisma.user.update({ where: { email: user.email }, data: userData });
+      await prisma.user.update({
+        where: { email: user.email },
+        data: userData,
+      });
       userUpdated++;
       users.push(existing);
     } else {
@@ -54,41 +58,59 @@ async function main() {
   console.log('\n📋 Seeding User Profiles...');
   for (let i = 0; i < users.length; i++) {
     const profile = userProfileSeedData[i];
-    const existing = await prisma.userProfile.findUnique({ where: { userId: users[i].id } });
+    const existing = await prisma.userProfile.findUnique({
+      where: { userId: users[i].id },
+    });
     let bmi: number | undefined = undefined;
     if (profile.weightKg && profile.heightCm) {
       const heightInMeters = profile.heightCm / 100;
-      bmi = parseFloat((profile.weightKg / (heightInMeters * heightInMeters)).toFixed(2));
+      bmi = parseFloat(
+        (profile.weightKg / (heightInMeters * heightInMeters)).toFixed(2),
+      );
     }
     const profileData = { ...profile, bmi: bmi };
     if (existing) {
-      await prisma.userProfile.update({ where: { userId: users[i].id }, data: profileData });
+      await prisma.userProfile.update({
+        where: { userId: users[i].id },
+        data: profileData,
+      });
       profileUpdated++;
     } else {
-      await prisma.userProfile.create({ data: { ...profileData, userId: users[i].id } });
+      await prisma.userProfile.create({
+        data: { ...profileData, userId: users[i].id },
+      });
       profileCreated++;
     }
   }
-  console.log(`📋 Profiles → ${profileCreated} added, ${profileUpdated} updated`);
+  console.log(
+    `📋 Profiles → ${profileCreated} added, ${profileUpdated} updated`,
+  );
 
   console.log('\n🏋️ Seeding Exercises...');
   for (const exercise of exerciseSeedData) {
-    const existing = await prisma.exercise.findUnique({ where: { name: exercise.name } });
+    const existing = await prisma.exercise.findUnique({
+      where: { name: exercise.name },
+    });
     if (existing) {
-      await prisma.exercise.update({ where: { name: exercise.name }, data: exercise });
+      await prisma.exercise.update({
+        where: { name: exercise.name },
+        data: exercise,
+      });
       exerciseUpdated++;
     } else {
       await prisma.exercise.create({ data: exercise });
       exerciseCreated++;
     }
   }
-  console.log(`🏋️ Exercises → ${exerciseCreated} added, ${exerciseUpdated} updated`);
+  console.log(
+    `🏋️ Exercises → ${exerciseCreated} added, ${exerciseUpdated} updated`,
+  );
 
   // --- PHẦN FOODS  ---
   console.log('\n🥗 Seeding Foods from CSV...');
   await new Promise<void>((resolve, reject) => {
     const results: any[] = [];
-  
+
     const csvFilePath = path.join(__dirname, 'foods_vn.csv');
 
     fs.createReadStream(csvFilePath)
@@ -120,29 +142,31 @@ async function main() {
             iron: toFloat(food.Sắt),
             sodium: toFloat(food.Natri),
             potassium: toFloat(food.Kali),
-            magnesium: toFloat(food.Photpho), 
-            
+            magnesium: toFloat(food.Photpho),
+
             // === Vitamins ===
             vitaminA: toFloat(food['Vitamin A']),
             vitaminC: toFloat(food['Vitamin C']),
-            vitaminB6: toFloat(food['Vitamin B1']), 
+            vitaminB6: toFloat(food['Vitamin B1']),
           };
 
           // --- SỬA LỖI TẠI ĐÂY ---
           // Dùng findFirst thay vì findUnique vì 'name' không còn là unique
-          const existing = await prisma.food.findFirst({ where: { name: name } });
-          
+          const existing = await prisma.food.findFirst({
+            where: { name: name },
+          });
+
           if (existing) {
             // Nếu tìm thấy, dùng ID của nó để update
-            await prisma.food.update({ 
-              where: { id: existing.id }, 
-              data: foodData 
+            await prisma.food.update({
+              where: { id: existing.id },
+              data: foodData,
             });
             foodUpdated++;
           } else {
             // Nếu chưa có thì tạo mới
-            await prisma.food.create({ 
-              data: { name: name, ...foodData } 
+            await prisma.food.create({
+              data: { name: name, ...foodData },
             });
             foodCreated++;
           }
@@ -156,9 +180,13 @@ async function main() {
   // 📊 Summary
   console.log('\n📊 Summary Report:');
   console.log(`👤 Users → ${userCreated} added, ${userUpdated} updated`);
-  console.log(`📋 Profiles → ${profileCreated} added, ${profileUpdated} updated`);
-  console.log(`🥗 Foods → ${foodCreated} added, ${foodUpdated} updated`); 
-  console.log(`🏋️ Exercises → ${exerciseCreated} added, ${exerciseUpdated} updated`);
+  console.log(
+    `📋 Profiles → ${profileCreated} added, ${profileUpdated} updated`,
+  );
+  console.log(`🥗 Foods → ${foodCreated} added, ${foodUpdated} updated`);
+  console.log(
+    `🏋️ Exercises → ${exerciseCreated} added, ${exerciseUpdated} updated`,
+  );
   console.log('\n✅ All seeds loaded successfully!');
 }
 

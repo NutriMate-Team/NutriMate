@@ -5,10 +5,7 @@ import { PrismaModule } from 'src/prisma/prisma.module';
 import { RecommendationModule } from 'src/calculator/recommendation/recommendation.module'; // <-- 1. IMPORT MODULE GỢI Ý
 
 @Module({
-  imports: [
-    PrismaModule,
-    RecommendationModule, 
-  ],
+  imports: [PrismaModule, RecommendationModule],
   controllers: [UserProfileController],
   providers: [UserProfileService],
 })

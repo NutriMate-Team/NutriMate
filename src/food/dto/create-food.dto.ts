@@ -1,25 +1,25 @@
 import { IsString, IsNumber, IsOptional } from 'class-validator';
 
 export class CreateFoodDto {
-    @IsString()
-    name!: string;
-    
-    @IsNumber()
-    calories!: number;
+  @IsString()
+  name!: string;
 
-    @IsOptional()
-    @IsNumber()
-    protein?: number;
+  @IsNumber()
+  calories!: number;
 
-    @IsOptional()
-    @IsNumber()
-    carbs?: number;
+  @IsOptional()
+  @IsNumber()
+  protein?: number;
 
-    @IsOptional()
-    @IsNumber()
-    fat?: number;
+  @IsOptional()
+  @IsNumber()
+  carbs?: number;
 
-    @IsOptional()
-    @IsString()
-    portionSize?: string;
+  @IsOptional()
+  @IsNumber()
+  fat?: number;
+
+  @IsOptional()
+  @IsString()
+  portionSize?: string;
 }

@@ -7,7 +7,7 @@ export const userProfileSeedData = [
     targetWeightKg: 62,
     activityLevel: ActivityLevel.LIGHT,
   },
- 
+
   {
     heightCm: 160,
     weightKg: 55,

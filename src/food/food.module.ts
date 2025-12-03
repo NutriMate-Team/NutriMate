@@ -7,14 +7,8 @@ import { HttpModule } from '@nestjs/axios';
 import { ConfigModule } from '@nestjs/config';
 
 @Module({
-  imports: [
-    PrismaModule, 
-    HttpModule, 
-    ConfigModule,
-  ],
+  imports: [PrismaModule, HttpModule, ConfigModule],
   controllers: [FoodController],
-  providers: [
-    FoodService,
-  ],
+  providers: [FoodService],
 })
 export class FoodModule {}

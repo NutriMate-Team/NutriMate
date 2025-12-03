@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
 import { CreateMealLogDto } from './dto/create-meal-log.dto';
 import { UpdateMealLogDto } from './dto/update-meal-log.dto';
 import { PrismaService } from 'src/prisma/prisma.services';
@@ -10,10 +15,7 @@ export class MealLogService {
   constructor(private prisma: PrismaService) {}
 
   async create(userId: string, dto: CreateMealLogDto) {
-    const { 
-      foodId, quantity, mealType, 
-      source, name, calories 
-    } = dto;
+    const { foodId, quantity, mealType, source, name, calories } = dto;
 
     let localFoodId = foodId;
     let foodCalorie100g = 0;
@@ -23,12 +25,14 @@ export class MealLogService {
 
       // 1. Kiểm tra dữ liệu bắt buộc
       if (!name || calories === undefined) {
-        throw new BadRequestException('Thiếu thông tin: name và calories là bắt buộc với món USDA.');
+        throw new BadRequestException(
+          'Thiếu thông tin: name và calories là bắt buộc với món USDA.',
+        );
       }
 
       // 2. Tìm trong DB xem đã lưu chưa
       const existingFood = await this.prisma.food.findFirst({
-        where: { externalId: foodId.toString(), source: source }
+        where: { externalId: foodId.toString(), source: source },
       });
 
       if (existingFood) {
@@ -47,14 +51,12 @@ export class MealLogService {
             protein: Number(dto.protein) || 0,
             fat: Number(dto.fat) || 0,
             carbs: Number(dto.carbs) || 0,
-          }
+          },
         });
         localFoodId = newFood.id;
         foodCalorie100g = newFood.calories ?? 0;
       }
-    } 
-
-    else {
+    } else {
       this.logger.log('🏠 Tìm kiếm món ăn Local');
       const localFood = await this.prisma.food.findUnique({
         where: { id: foodId },
@@ -78,7 +80,7 @@ export class MealLogService {
         mealType: mealType,
         totalCalories: parseFloat(totalCalories.toFixed(2)),
       },
-      include: { food: true }
+      include: { food: true },
     });
   }
 
@@ -91,14 +93,20 @@ export class MealLogService {
   }
 
   async findOne(id: string, userId: string) {
-    const log = await this.prisma.mealLog.findFirst({ where: { id, userId }, include: { food: true } });
+    const log = await this.prisma.mealLog.findFirst({
+      where: { id, userId },
+      include: { food: true },
+    });
     if (!log) throw new NotFoundException(`Meal log not found.`);
     return log;
   }
 
   async update(id: string, userId: string, updateMealLogDto: UpdateMealLogDto) {
     await this.findOne(id, userId);
-    return this.prisma.mealLog.update({ where: { id }, data: updateMealLogDto });
+    return this.prisma.mealLog.update({
+      where: { id },
+      data: updateMealLogDto,
+    });
   }
 
   async remove(id: string, userId: string) {

@@ -30,7 +30,7 @@ export class RecommendationService {
     const profile = user.profile;
 
     const age = dayjs().diff(dayjs(user.dateOfBirth), 'year');
-    
+
     // 1. Tính BMR (Basal Metabolic Rate)
     const bmr = this.healthService.calculateBMR(
       user.gender as string,
@@ -54,14 +54,14 @@ export class RecommendationService {
 
       // Ngưỡng chênh lệch nhỏ (ví dụ 0.5kg) coi như đã đạt mục tiêu
       if (Math.abs(diff) < 0.5) {
-         targetCalories = tdee;
-         exerciseSuggestion = 'Bạn đã đạt cân nặng mục tiêu! Hãy duy trì.';
-      } 
-      else if (diff > 0) {
+        targetCalories = tdee;
+        exerciseSuggestion = 'Bạn đã đạt cân nặng mục tiêu! Hãy duy trì.';
+      } else if (diff > 0) {
         // MUỐN TĂNG CÂN -> ĂN DƯ (Surplus)
         // Tăng 500 kcal/ngày
         targetCalories = tdee + 500;
-        exerciseSuggestion = 'Tập luyện sức mạnh (Gym) kết hợp ăn dư calo để tăng cơ.';
+        exerciseSuggestion =
+          'Tập luyện sức mạnh (Gym) kết hợp ăn dư calo để tăng cơ.';
       } else {
         // MUỐN GIẢM CÂN -> ĂN THÂM HỤT (Deficit)
         // Giảm 500 kcal/ngày
@@ -73,7 +73,7 @@ export class RecommendationService {
     // 4. [QUAN TRỌNG] Giới hạn an toàn
     // Không bao giờ để targetCalories xuống dưới BMR (mức tối thiểu để sống)
     if (targetCalories < bmr) {
-      targetCalories = bmr; 
+      targetCalories = bmr;
     }
 
     // Tìm bản ghi cũ
@@ -85,13 +85,13 @@ export class RecommendationService {
     // 5. Lưu vào DB
     return this.prisma.recommendation.upsert({
       where: { id: existingRec?.id || 'non-existing-id-to-force-create' },
-      
+
       update: {
-        recommendedCalories: parseFloat(targetCalories.toFixed(2)), 
+        recommendedCalories: parseFloat(targetCalories.toFixed(2)),
         recommendedExercise: exerciseSuggestion,
         generatedAt: new Date(),
       },
-      
+
       create: {
         userId: userId,
         recommendedCalories: parseFloat(targetCalories.toFixed(2)),

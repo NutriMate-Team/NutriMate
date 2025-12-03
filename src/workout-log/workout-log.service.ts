@@ -19,21 +19,22 @@ export class WorkoutLogService {
       throw new NotFoundException(`Exercise with ID ${exerciseId} not found.`);
     }
 
-    const totalCaloriesBurned = (exercise.caloriesBurnedPerHour / 60) * durationMin;
+    const totalCaloriesBurned =
+      (exercise.caloriesBurnedPerHour / 60) * durationMin;
 
     return this.prisma.workoutLog.create({
       data: {
-        userId: userId, 
+        userId: userId,
         exerciseId: exerciseId,
         durationMin: durationMin,
-        caloriesBurned: totalCaloriesBurned, 
+        caloriesBurned: totalCaloriesBurned,
       },
     });
   }
 
   findAll(userId: string) {
     return this.prisma.workoutLog.findMany({
-      where: { userId: userId }, 
+      where: { userId: userId },
       orderBy: { loggedAt: 'desc' },
     });
   }

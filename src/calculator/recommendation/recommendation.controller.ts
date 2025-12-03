@@ -1,13 +1,11 @@
 import { Controller, Get, UseGuards, Req } from '@nestjs/common';
 import { RecommendationService } from './recommendation.service';
-import { JwtAuthGuard } from 'src/auth/jwt-auth.guard'; 
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 
 @Controller('recommendation')
-@UseGuards(JwtAuthGuard) 
+@UseGuards(JwtAuthGuard)
 export class RecommendationController {
-  constructor(
-    private readonly recommendationService: RecommendationService,
-  ) {}
+  constructor(private readonly recommendationService: RecommendationService) {}
 
   @Get('generate')
   async generate(@Req() req) {

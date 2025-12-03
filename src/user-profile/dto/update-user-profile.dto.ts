@@ -1,18 +1,17 @@
 import { IsNumber, IsOptional, Min, IsEnum } from 'class-validator';
 
 export enum ActivityLevel {
-  SEDENTARY = 'SEDENTARY', 
-  LIGHT = 'LIGHT', 
-  MODERATE = 'MODERATE', 
-  ACTIVE = 'ACTIVE', 
+  SEDENTARY = 'SEDENTARY',
+  LIGHT = 'LIGHT',
+  MODERATE = 'MODERATE',
+  ACTIVE = 'ACTIVE',
   VERY_ACTIVE = 'VERY_ACTIVE',
 }
 
 export class UpdateUserProfileDto {
-
   @IsNumber({}, { message: 'Chiều cao phải là một con số.' })
   @Min(1, { message: 'Chiều cao phải lớn hơn 0.' })
-  @IsOptional() 
+  @IsOptional()
   heightCm?: number;
 
   @IsNumber({}, { message: 'Cân nặng phải là một con số.' })

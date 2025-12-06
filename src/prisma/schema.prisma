@@ -11,14 +11,15 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
-  passwordHash  String
-  fullName      String
-  gender        String?
-  dateOfBirth   DateTime?
-  createdAt     DateTime  @default(now())
-  googleId      String?   @unique
+  id               String    @id @default(uuid())
+  email            String    @unique
+  passwordHash     String?
+  fullName         String?
+  gender           String?
+  dateOfBirth      DateTime?
+  createdAt        DateTime  @default(now())
+  googleId         String?   @unique
+  profilePictureUrl String?
 
   profile         UserProfile?
   mealLogs        MealLog[]

@@ -54,6 +54,45 @@ export class UserProfileService {
     if (!profile) {
       throw new NotFoundException('Chưa có hồ sơ, vui lòng cập nhật.');
     }
-    return profile;
+
+    // Get user's profile picture URL
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { profilePictureUrl: true },
+    });
+
+    return {
+      ...profile,
+      profilePictureUrl: user?.profilePictureUrl || null,
+    };
+  }
+
+  async updateProfilePicture(userId: string, fileUrl: string) {
+    try {
+      const user = await this.prisma.user.update({
+        where: { id: userId },
+        data: { profilePictureUrl: fileUrl },
+        select: {
+          id: true,
+          email: true,
+          fullName: true,
+          profilePictureUrl: true,
+        },
+      });
+
+      // Verify the update was successful
+      if (!user.profilePictureUrl || user.profilePictureUrl !== fileUrl) {
+        throw new Error('Database update failed - profilePictureUrl not set correctly');
+      }
+
+      return {
+        message: 'Profile picture updated successfully',
+        profilePictureUrl: user.profilePictureUrl,
+      };
+    } catch (error) {
+      // Log the error for debugging
+      console.error('Error updating profile picture:', error);
+      throw error;
+    }
   }
 }

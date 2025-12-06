@@ -62,7 +62,14 @@ export class AuthService {
       where: { email: dto.email },
     });
 
-    if (!user || !(await bcrypt.compare(dto.password, user.passwordHash))) {
+    // Check if user exists and has a password hash (not a social-only account)
+    if (!user || !user.passwordHash) {
+      throw new UnauthorizedException('Email or password is incorrect');
+    }
+
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash);
+    if (!isPasswordValid) {
       throw new UnauthorizedException('Email or password is incorrect');
     }
 
@@ -192,7 +199,7 @@ export class AuthService {
   private buildAuthResponse(user: {
     id: string;
     email: string;
-    fullName: string;
+    fullName: string | null;
   }) {
     const payload = {
       email: user.email,
@@ -201,11 +208,43 @@ export class AuthService {
 
     return {
       access_token: this.jwtService.sign(payload),
-      user: { id: user.id, email: user.email, fullName: user.fullName },
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName ?? 'User',
+      },
     };
   }
 
   private createRandomPassword() {
     return randomBytes(16).toString('hex');
+  }
+
+  async validateToken(user: { id: string; email: string }) {
+    // Verify user still exists in database
+    const dbUser = await this.prisma.user.findUnique({
+      where: { id: user.id },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        profilePictureUrl: true,
+      },
+    });
+
+    if (!dbUser) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    // Return user info and a fresh token if needed
+    return {
+      valid: true,
+      user: {
+        id: dbUser.id,
+        email: dbUser.email,
+        fullName: dbUser.fullName ?? 'User',
+        profilePictureUrl: dbUser.profilePictureUrl,
+      },
+    };
   }
 }

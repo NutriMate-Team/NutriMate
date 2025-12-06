@@ -58,4 +58,10 @@ export class AuthController {
   ) {
     return this.authService.linkSocialAccount(req.user.id, dto);
   }
+
+  @Get('status')
+  @UseGuards(JwtAuthGuard)
+  async validateToken(@Req() req: Request & { user: { id: string; email: string } }) {
+    return this.authService.validateToken(req.user);
+  }
 }

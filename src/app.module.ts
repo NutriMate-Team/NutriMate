@@ -9,6 +9,7 @@ import { UserModule } from './user/user.module';
 import { UserProfileModule } from './user-profile/user-profile.module';
 import { WorkoutLogModule } from './workout-log/workout-log.module';
 import { MealLogModule } from './meal-log/meal-log.module';
+import { MealPhotoModule } from './meal-photo/meal-photo.module';
 import { AuthModule } from './auth/auth.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
@@ -36,6 +37,7 @@ import { join } from 'path';
     UserProfileModule,
     WorkoutLogModule,
     MealLogModule,
+    MealPhotoModule,
     DashboardModule,
   ],
   controllers: [AppController],

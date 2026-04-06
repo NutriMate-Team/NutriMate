@@ -34,20 +34,22 @@ export class MealPhotoService {
     }
   }
 
-  async listAllMetadata() {
-    const dir = join(process.cwd(), 'uploads', 'meal-photos');
-    try {
-      const names = await fs.readdir(dir);
-      const metas = [];
-      for (const n of names) {
-        if (n.endsWith('.json')) {
-          const raw = await fs.readFile(join(dir, n), 'utf8');
-          metas.push(JSON.parse(raw));
-        }
+async listAllMetadata() {
+  const dir = join(process.cwd(), 'uploads', 'meal-photos');
+  try {
+    const names = await fs.readdir(dir);
+    const metas: any[] = []; 
+
+    for (const n of names) {
+      if (n.endsWith('.json')) {
+        const raw = await fs.readFile(join(dir, n), 'utf8');
+        metas.push(JSON.parse(raw));
       }
-      return metas;
-    } catch (e) {
-      return [];
     }
+
+    return metas;
+  } catch (e) {
+    return [];
   }
+}
 }

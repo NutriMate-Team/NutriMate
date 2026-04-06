@@ -1,4 +1,4 @@
-import { PrismaClient, ActivityLevel } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { exerciseSeedData } from './seeds/exercises.seed';
 import { userSeedData } from './seeds/users.seed';
 import { userProfileSeedData } from './seeds/user-profile.seed';
@@ -11,189 +11,207 @@ import csv from 'csv-parser';
 const prisma = new PrismaClient();
 
 const toFloat = (value: string | undefined): number | undefined => {
-  if (value === undefined || value === null || value.trim() === '') {
-    return undefined;
-  }
+  if (!value || value.trim() === '') return undefined;
   const num = parseFloat(value.replace(',', '.'));
   return isNaN(num) ? undefined : num;
 };
 
 async function main() {
-  console.log('🌱 Bắt đầu nạp dữ liệu (seeding)...');
+  console.log('🌱 Seeding...');
 
-  let foodCreated = 0;
-  let foodUpdated = 0;
-  let exerciseCreated = 0;
-  let exerciseUpdated = 0;
-  let userCreated = 0;
-  let userUpdated = 0;
-  let profileCreated = 0;
-  let profileUpdated = 0;
-
-  console.log('\n👤 Seeding Users...');
+  // ================= USERS =================
   const rawUsers = await userSeedData();
   const users: any[] = [];
+
   for (const user of rawUsers) {
     const existing = await prisma.user.findUnique({
       where: { email: user.email },
     });
-    const salt = await bcrypt.genSalt();
-    const passwordHash = await bcrypt.hash(user.passwordHash, salt);
-    const userData = { ...user, passwordHash: passwordHash };
+
+    const passwordHash = await bcrypt.hash(user.passwordHash, 10);
+    const userData = { ...user, passwordHash };
+
     if (existing) {
-      await prisma.user.update({
+      const updated = await prisma.user.update({
         where: { email: user.email },
         data: userData,
       });
-      userUpdated++;
-      users.push(existing);
+      users.push(updated);
     } else {
       const created = await prisma.user.create({ data: userData });
-      userCreated++;
       users.push(created);
     }
   }
-  console.log(`👤 Users → ${userCreated} added, ${userUpdated} updated`);
 
-  console.log('\n📋 Seeding User Profiles...');
+  console.log('👤 Users done');
+
+  // ================= PROFILE =================
   for (let i = 0; i < users.length; i++) {
     const profile = userProfileSeedData[i];
-    const existing = await prisma.userProfile.findUnique({
+
+    const bmi =
+      profile.weightKg && profile.heightCm
+        ? parseFloat(
+            (
+              profile.weightKg /
+              Math.pow(profile.heightCm / 100, 2)
+            ).toFixed(2),
+          )
+        : undefined;
+
+    await prisma.userProfile.upsert({
       where: { userId: users[i].id },
+      update: { ...profile, bmi },
+      create: { ...profile, bmi, userId: users[i].id },
     });
-    let bmi: number | undefined = undefined;
-    if (profile.weightKg && profile.heightCm) {
-      const heightInMeters = profile.heightCm / 100;
-      bmi = parseFloat(
-        (profile.weightKg / (heightInMeters * heightInMeters)).toFixed(2),
-      );
-    }
-    const profileData = { ...profile, bmi: bmi };
-    if (existing) {
-      await prisma.userProfile.update({
-        where: { userId: users[i].id },
-        data: profileData,
-      });
-      profileUpdated++;
-    } else {
-      await prisma.userProfile.create({
-        data: { ...profileData, userId: users[i].id },
-      });
-      profileCreated++;
-    }
   }
-  console.log(
-    `📋 Profiles → ${profileCreated} added, ${profileUpdated} updated`,
-  );
 
-  console.log('\n🏋️ Seeding Exercises...');
-  for (const exercise of exerciseSeedData) {
-    const existing = await prisma.exercise.findUnique({
-      where: { name: exercise.name },
+  console.log('📋 Profiles done');
+
+  // ================= EXERCISE =================
+  for (const ex of exerciseSeedData) {
+    await prisma.exercise.upsert({
+      where: { name: ex.name },
+      update: ex,
+      create: ex,
     });
-    if (existing) {
-      await prisma.exercise.update({
-        where: { name: exercise.name },
-        data: exercise,
-      });
-      exerciseUpdated++;
-    } else {
-      await prisma.exercise.create({ data: exercise });
-      exerciseCreated++;
-    }
   }
-  console.log(
-    `🏋️ Exercises → ${exerciseCreated} added, ${exerciseUpdated} updated`,
-  );
 
-  // --- PHẦN FOODS  ---
-  console.log('\n🥗 Seeding Foods from CSV...');
+  console.log('🏋️ Exercises done');
+
+  // ================= FOOD =================
+  console.log('🥗 Seeding Foods...');
   await new Promise<void>((resolve, reject) => {
     const results: any[] = [];
 
-    const csvFilePath = path.join(__dirname, 'foods_vn.csv');
-
-    fs.createReadStream(csvFilePath)
-      // Bỏ qua 2 dòng đầu tiên (dòng tiêu đề và dòng trống)
+    fs.createReadStream(path.join(__dirname, 'foods_vn.csv'))
       .pipe(csv({ skipLines: 2 }))
-      .on('data', (data) => results.push(data))
-      .on('error', (err) => reject(err))
+      .on('data', (d) => results.push(d))
       .on('end', async () => {
-        console.log(`Đã đọc ${results.length} bản ghi từ CSV.`);
-
         for (const food of results) {
           const name = food['TÊN THỨC ĂN'];
-          if (!name || name.trim() === '') {
-            continue; // Bỏ qua nếu dòng không có tên
-          }
+          if (!name) continue;
 
-          const foodData = {
+          const data = {
+            name,
             unit: '100g',
             source: 'vietnam_nin',
-            // === Macros ===
             calories: toFloat(food.Calories),
             protein: toFloat(food.Protein),
             fat: toFloat(food.Fat),
             carbs: toFloat(food.Carbonhydrates),
-            fiber: toFloat(food['Chất xơ']),
-            cholesterol: toFloat(food.Cholesterol),
-            // === Khoáng chất ===
-            calcium: toFloat(food.Canxi),
-            iron: toFloat(food.Sắt),
-            sodium: toFloat(food.Natri),
-            potassium: toFloat(food.Kali),
-            magnesium: toFloat(food.Photpho),
-
-            // === Vitamins ===
-            vitaminA: toFloat(food['Vitamin A']),
-            vitaminC: toFloat(food['Vitamin C']),
-            vitaminB6: toFloat(food['Vitamin B1']),
           };
 
-          // --- SỬA LỖI TẠI ĐÂY ---
-          // Dùng findFirst thay vì findUnique vì 'name' không còn là unique
           const existing = await prisma.food.findFirst({
-            where: { name: name },
+            where: { name },
           });
 
           if (existing) {
-            // Nếu tìm thấy, dùng ID của nó để update
             await prisma.food.update({
               where: { id: existing.id },
-              data: foodData,
+              data,
             });
-            foodUpdated++;
           } else {
-            // Nếu chưa có thì tạo mới
-            await prisma.food.create({
-              data: { name: name, ...foodData },
-            });
-            foodCreated++;
+            await prisma.food.create({ data });
           }
-          // -----------------------
         }
-        console.log(`✅ Foods seeding finished.`);
-        resolve(); // Báo cho Promise biết là đã xong
-      });
+        resolve();
+      })
+      .on('error', reject);
   });
 
-  // 📊 Summary
-  console.log('\n📊 Summary Report:');
-  console.log(`👤 Users → ${userCreated} added, ${userUpdated} updated`);
-  console.log(
-    `📋 Profiles → ${profileCreated} added, ${profileUpdated} updated`,
-  );
-  console.log(`🥗 Foods → ${foodCreated} added, ${foodUpdated} updated`);
-  console.log(
-    `🏋️ Exercises → ${exerciseCreated} added, ${exerciseUpdated} updated`,
-  );
-  console.log('\n✅ All seeds loaded successfully!');
+  console.log('🥗 Foods done');
+
+  // ================= EXTRA DATA =================
+
+  const foods = await prisma.food.findMany({ take: 3 });
+  const exercises = await prisma.exercise.findMany({ take: 3 });
+
+  console.log('🍽️ MealLogs...');
+  for (const user of users) {
+    for (const food of foods) {
+      await prisma.mealLog.create({
+        data: {
+          userId: user.id,
+          foodId: food.id,
+          quantity: 150,
+          mealType: 'LUNCH',
+          totalCalories: ((food.calories || 0) / 100) * 150,
+        },
+      });
+    }
+  }
+
+  console.log('📸 MealPhotos...');
+  const mealLogs = await prisma.mealLog.findMany({ take: 3 });
+
+  for (const log of mealLogs) {
+    await prisma.mealPhoto.create({
+      data: {
+        userId: log.userId,
+        mealLogId: log.id,
+        filename: `photo_${log.id}.jpg`,
+        path: `/uploads/meal-photos/photo_${log.id}.jpg`,
+        status: 'PROCESSED',
+        suggestedName: 'Cơm gà',
+        suggestedCalories: 500,
+        confidence: 0.9,
+      },
+    });
+  }
+
+  console.log('🧠 Recommendation...');
+  for (const user of users) {
+    await prisma.recommendation.upsert({
+      where: { userId: user.id },
+      update: {
+        recommendedCalories: 2000,
+        recommendedProtein: 120,
+        recommendedFat: 60,
+        recommendedCarbs: 250,
+        recommendedExercise: 'Running',
+      },
+      create: {
+        userId: user.id,
+        recommendedCalories: 2000,
+        recommendedProtein: 120,
+        recommendedFat: 60,
+        recommendedCarbs: 250,
+        recommendedExercise: 'Running',
+      },
+    });
+  }
+
+  console.log('💧 Water...');
+  for (const user of users) {
+    await prisma.waterGoal.upsert({
+      where: { userId: user.id },
+      update: { dailyGoalMl: 2000 },
+      create: { userId: user.id, dailyGoalMl: 2000 },
+    });
+
+    await prisma.waterLog.create({
+      data: { userId: user.id, amountMl: 500 },
+    });
+  }
+
+  console.log('🏋️ WorkoutLogs...');
+  for (const user of users) {
+    for (const ex of exercises) {
+      await prisma.workoutLog.create({
+        data: {
+          userId: user.id,
+          exerciseId: ex.id,
+          durationMin: 30,
+          caloriesBurned: ex.caloriesBurnedPerHour * 0.5,
+        },
+      });
+    }
+  }
+
+  console.log('✅ DONE');
 }
 
 main()
-  .catch((e) => {
-    console.error(e);
-    console.log('❌ Failed to Load!');
-    process.exit(1);
-  })
-  .finally(async () => await prisma.$disconnect());
+  .catch(console.error)
+  .finally(() => prisma.$disconnect());

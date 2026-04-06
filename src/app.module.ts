@@ -12,6 +12,7 @@ import { MealLogModule } from './meal-log/meal-log.module';
 import { MealPhotoModule } from './meal-photo/meal-photo.module';
 import { AuthModule } from './auth/auth.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { WaterModule } from './water/water.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 
@@ -39,6 +40,7 @@ import { join } from 'path';
     MealLogModule,
     MealPhotoModule,
     DashboardModule,
+    WaterModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,80 +1,86 @@
-# NutriMate — Tổng quan hệ thống
+# NutriMate - Tổng quan hệ thống đầy đủ chức năng
 
-## Mục tiêu
-NutriMate là một backend REST API (NestJS) nhằm hỗ trợ quản lý dinh dưỡng, bài tập và theo dõi hoạt động người dùng. Hệ thống cung cấp: quản lý người dùng, xác thực (JWT + OAuth Google), quản lý thực phẩm, nhật ký bữa ăn, bài tập và gợi ý sức khỏe.
+## 🎯 Mục tiêu hệ thống
+NutriMate là backend REST API (NestJS + TypeScript) hỗ trợ theo dõi dinh dưỡng, tập luyện và sức khỏe. Tính năng chính: quản lý user, auth (JWT + Google), tracking bữa ăn/nước/tập, calculator BMI/recommendation, AI nhận diện ảnh món ăn từ VN foods.
 
-## Kiến trúc tổng quan
-- Ngôn ngữ & framework: TypeScript, NestJS
-- ORM: Prisma (schema tại `prisma/schema.prisma`)
-- Package manager: pnpm
-- Các mô-đun chính: `auth`, `user`, `user-profile`, `food`, `meal-log`, `calculator`, `recommendation`, `exercise`, `workout-log`, `dashboard`, `prisma`.
+## 🏗️ Kiến trúc
+- **Framework**: NestJS (modular)
+- **DB**: PostgreSQL + Prisma ORM (`src/prisma/schema.prisma`)
+- **Auth**: JWT Guard + Google OAuth Strategy
+- **Upload**: Profile pics (`uploads/profile-pictures/`), meal photos
+- **AI/ML**: Meal photo recognition (`meal-photo.service.ts`, queue)
+- **Package**: pnpm (workspace), seeds (`prisma/seed.ts`, foods_vn.csv)
+- **Modules chính**: auth, user*, food, meal-log, workout-log*, calculator*, dashboard, water, exercise*, meal-photo
 
-## Mô-đun chính (tóm tắt)
-- `auth`: xử lý đăng ký/đăng nhập, JWT, social login (Google). (thư mục: `src/auth`)
-- `user` / `user-profile`: quản lý tài khoản và hồ sơ người dùng. (thư mục: `src/user`, `src/user-profile`)
-- `food`: CRUD dữ liệu thực phẩm, có dữ liệu mẫu `prisma/foods_vn.csv`.
-- `meal-log`: lưu nhật ký bữa ăn, tính calories từ thực phẩm.
-- `exercise` / `workout-log`: quản lý bài tập và nhật ký luyện tập.
-- `calculator` / `recommendation`: các dịch vụ tính toán sức khỏe và gợi ý dinh dưỡng.
-- `dashboard`: tổng hợp số liệu và thống kê cho người dùng.
-- `prisma`: cấu hình schema, migration và seed (thư mục: `prisma/`).
+(*: Có DTOs cho CRUD)
 
-## Database & Seed
-- Prisma quản lý schema và migration (xem `prisma/schema.prisma` và thư mục `prisma/migrations`).
-- Có file seed / script seed trong `prisma/seed.ts` và file dữ liệu `prisma/foods_vn.csv`.
+## 📋 Danh sách đầy đủ chức năng - APIs (Controllers)
 
-## Xác thực
-- Hệ thống dùng JWT cho API bảo mật; có guard `jwt-auth.guard.ts` và `jwt.strategy.ts`.
-- Hỗ trợ social login qua Google (strategy: `src/auth/strategies/google.strategy.ts`).
+| Module | Method + Endpoint | Mô tả |
+|--------|-------------------|-------|
+| **Auth** (`/auth`) | POST `/register` | Đăng ký user (RegisterDto) |
+| | POST `/login` | Đăng nhập (LoginDto) → JWT |
+| | GET `/google`, `/google/callback` | Google OAuth flow |
+| | POST `/google/verify` | Verify Google token |
+| | POST `/link-social` | Link social (JWT protected) |
+| | GET `/status` | Check auth status (JWT) |
+| **Dashboard** (`/dashboard`) | GET `/summary?date=...` (GetSummaryDto) | Tổng hợp stats user |
+| **Food** (`/food`) | GET `/search?q=...` (SearchFoodDto) | Hybrid search thực phẩm VN |
+| **WorkoutLog** (`/workout-log`) | GET `/today` | Nhật ký tập hôm nay |
+| | CRUD via DTOs (CreateWorkoutLogDto, etc.) | Tạo/cập nhật log tập |
+| **Calculator/Health** (`/calculator/health`) | GET `/bmi` | Tính BMI từ profile |
+| **Calculator/Recommendation** (`/calculator/recommendation`) | GET `/generate` | Tạo gợi ý dinh dưỡng |
+| | GET `/latest` | Lấy recommend gần nhất |
+| **Water** (`/water`) | POST `/logs` (CreateWaterLogDto) | Log nước uống |
+| | GET `/logs?date=...` | Lấy logs nước |
+| | PUT `/goal` (UpdateWaterGoalDto) | Set mục tiêu nước/ngày |
+| | GET `/summary?date=...` | Tóm tắt nước |
+| **UserProfile** (`/user-profile`) | POST `/picture` (FileInterceptor) | Upload ảnh profile |
+| | CRUD profile (UpdateUserProfileDto) | Cập nhật height/weight/BMI |
+| **MealPhoto** (`/meal-photo`) | POST `/upload` (FileInterceptor) | Upload ảnh bữa ăn → AI recognize |
+| | GET `/list` | List tất cả meal photos |
+| **User** (`/user`) | CRUD (CreateUserDto, UpdateUserDto) | Quản lý user cơ bản |
+| **Exercise** (`/exercise`) | CRUD (CreateExerciseDto) | Quản lý bài tập |
+| **MealLog** (`/meal-log`) | CRUD (CreateMealLogDto) | Log bữa ăn + calories |
 
-## Cấu hình môi trường (tóm tắt)
-- Các biến môi trường quan trọng: `DATABASE_URL`/`PRISMA_DATABASE_URL`, `JWT_SECRET`, Google OAuth keys (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`), và các biến upload/paths nếu có.
+**Lưu ý APIs**: Hầu hết protected bằng JWT. DTOs validate input.
 
-## Chạy ứng dụng cục bộ (gợi ý)
-1. Cài đặt phụ thuộc:
+## 🗄️ Database Schema (Prisma Models)
 
-```bash
-pnpm install
-```
+| Model | Fields chính | Relations |
+|-------|--------------|-----------|
+| **User** | id, email(unique), passwordHash, fullName, gender, DOB, googleId, profilePictureUrl | 1:1 Profile, 1:N Logs/Photos/Recommendations |
+| **UserProfile** | userId(unique), heightCm, weightKg, targetWeightKg, activityLevel(enum), bmi | User |
+| **Food** | id, name, unit(100g), externalId, **Macros**: calories/protein/fat/carbs/fiber/sugar/satFat/cholesterol, **Minerals**: Na/K/Ca/Fe/Mg, **Vitamins**: A/C/D/E/K/B6/B12 | 1:N MealLogs |
+| **MealLog** | userId, foodId, quantity, mealType, loggedAt, totalCalories | User, Food, 1:N MealPhotos |
+| **WorkoutLog** | userId, exerciseId, durationMin, caloriesBurned, loggedAt | User, Exercise |
+| **Exercise** | id, name(unique), caloriesBurnedPerHour, type | 1:N WorkoutLogs |
+| **Recommendation** | userId(unique), recCalories/Protein/Fat/Carbs/Exercise, generatedAt | User |
+| **MealPhoto** | userId/mealLogId, filename/path, status(QUEUED/PROCESSING/...), recognitionResult(Json), suggestedCalories/confidence | User/MealLog |
+| **WaterLog** | userId, amountMl, loggedAt | User |
+| **WaterGoal** | userId(unique), dailyGoalMl, reminderEnabled/hour/min | User |
 
-2. Tạo/kiểm tra biến môi trường (tạo file `.env` từ mẫu nếu có).
+**Enums**: MealPhotoStatus, ActivityLevel (SEDENTARY→VERY_ACTIVE).
 
-3. Chạy migration và seed (Prisma):
+## ✨ Tính năng nổi bật
+- **Auth Social**: Google login/link (strategies/google.strategy.ts).
+- **AI Photo Recognition**: Upload ảnh → queue → recognize món ăn/calories (`recognition.service.ts`).
+- **Calculators**: BMI (`health.service.ts`), dinh dưỡng recommend dựa profile.
+- **Tracking realtime**: Meal/workout/water logs w/ timestamps.
+- **VN Data**: Foods CSV seed, hybrid search.
+- **Seeds**: users.seed.ts, foods.seed.ts (VN), exercises.seed.ts.
 
-```bash
-npx prisma migrate dev
-# hoặc chạy script seed: pnpm run seed  # kiểm tra scripts trong package.json
-```
+## 🚀 Hướng dẫn Setup & Run
+1. **Cài deps**: `pnpm install`
+2. **Env vars** (.env): DATABASE_URL, JWT_SECRET, GOOGLE_CLIENT_ID/SECRET
+3. **DB**: `npx prisma generate && npx prisma migrate dev && npx prisma db seed` (or `pnpm run seed`)
+4. **Dev**: `pnpm run start:dev` (port 3000)
+5. **Test**: `pnpm run test:e2e`
 
-4. Chạy ứng dụng ở chế độ dev:
+## 📁 Files quan trọng
+- **Seeds**: `src/prisma/seeds/*`, `foods_vn.csv`
+- **Migrations**: `src/prisma/migrations/`
+- **Uploads**: `uploads/profile-pictures/`, meal photos
 
-```bash
-pnpm run start:dev
-```
+**Hoàn tất scan!** File này liệt kê **đầy đủ** chức năng từ controllers/schema/services.
 
-Lưu ý: tên script có thể khác, kiểm tra `package.json` để biết chính xác các lệnh sẵn có.
-
-## Kiểm thử
-- Repo có cấu hình test end-to-end (xem `test/` và `jest-e2e.json`). Chạy lệnh test theo script trong `package.json`.
-
-## Uploads & Lưu trữ file
-- Thư mục upload tĩnh: `uploads/profile-pictures/` (ảnh đại diện người dùng).
-
-## Điểm cần lưu ý cho developer
-- Kiểm tra các migration mới trước khi deploy.
-- Khi thay đổi schema Prisma, luôn chạy `npx prisma generate` và thực hiện migration thích hợp.
-- Bảo mật: giữ `JWT_SECRET` và Google credentials an toàn.
-
-## Tài liệu code & nơi tham khảo
-- Entry point: `src/main.ts`
-- Module gốc: `src/app.module.ts`
-- Controller chính: `src/app.controller.ts` và các controller theo module (ví dụ `src/food/food.controller.ts`).
-
-## Muốn tôi mở rộng?
-Nếu bạn muốn, tôi có thể:
-- Thêm hướng dẫn cài đặt chi tiết (biến môi trường cụ thể).
-- Sinh file `README.md` / `CONTRIBUTING.md` dựa trên nội dung này.
-- Tạo sơ đồ kiến trúc ngắn.
-
----
-File này do GitHub Copilot tạo nhanh; báo mình nếu cần sửa nội dung, dịch sang tiếng Anh, hoặc mở rộng phần nào cụ thể.

@@ -15,6 +15,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { WaterModule } from './water/water.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import { WebsocketModule } from './websocket/websocket.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { join } from 'path';
     MealPhotoModule,
     DashboardModule,
     WaterModule,
+    WebsocketModule,
   ],
   controllers: [AppController],
   providers: [AppService],

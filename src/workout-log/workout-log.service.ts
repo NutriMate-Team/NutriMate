@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateWorkoutLogDto } from './dto/create-workout-log.dto';
 import { UpdateWorkoutLogDto } from './dto/update-workout-log.dto';
 import { PrismaService } from 'src/prisma/prisma.services';
+import { Prisma } from '@prisma/client';
 import dayjs from 'dayjs';
 
 @Injectable()
@@ -11,28 +12,30 @@ export class WorkoutLogService {
   async create(userId: string, createWorkoutLogDto: CreateWorkoutLogDto) {
     const { exerciseId, durationMin } = createWorkoutLogDto;
 
-    const exercise = await this.prisma.exercise.findUnique({
-      where: { id: exerciseId },
-      select: { caloriesBurnedPerHour: true },
-    });
+    return this.prisma.withTransaction(async (tx: Prisma.TransactionClient) => {
+      const exercise = await tx.exercise.findUnique({
+        where: { id: exerciseId },
+        select: { caloriesBurnedPerHour: true },
+      });
 
-    if (!exercise) {
-      throw new NotFoundException(`Exercise with ID ${exerciseId} not found.`);
-    }
+      if (!exercise) {
+        throw new NotFoundException(`Exercise with ID ${exerciseId} not found.`);
+      }
 
-    const totalCaloriesBurned =
-      (exercise.caloriesBurnedPerHour / 60) * durationMin;
+      const totalCaloriesBurned =
+        (exercise.caloriesBurnedPerHour / 60) * durationMin;
 
-    return this.prisma.workoutLog.create({
-      data: {
-        userId: userId,
-        exerciseId: exerciseId,
-        durationMin: durationMin,
-        caloriesBurned: totalCaloriesBurned,
-      },
-      include: {
-        exercise: true,
-      },
+      return tx.workoutLog.create({
+        data: {
+          userId: userId,
+          exerciseId: exerciseId,
+          durationMin: durationMin,
+          caloriesBurned: totalCaloriesBurned,
+        },
+        include: {
+          exercise: true,
+        },
+      });
     });
   }
 
@@ -82,11 +85,19 @@ export class WorkoutLogService {
     userId: string,
     updateWorkoutLogDto: UpdateWorkoutLogDto,
   ) {
-    await this.findOne(id, userId);
+    return this.prisma.withTransaction(async (tx: Prisma.TransactionClient) => {
+      const log = await tx.workoutLog.findFirst({
+        where: { id, userId },
+      });
 
-    return this.prisma.workoutLog.update({
-      where: { id: id },
-      data: updateWorkoutLogDto,
+      if (!log) {
+        throw new NotFoundException('Workout log not found.');
+      }
+
+      return tx.workoutLog.update({
+        where: { id: id },
+        data: updateWorkoutLogDto,
+      });
     });
   }
 

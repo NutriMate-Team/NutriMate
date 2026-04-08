@@ -1,5 +1,6 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class PrismaService
@@ -10,7 +11,11 @@ export class PrismaService
     await this.$connect();
   }
 
-  async onModuleDestroy() {
+async onModuleDestroy() {
     await this.$disconnect();
+  }
+
+  async withTransaction<T>(operation: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
+    return this.$transaction(operation);
   }
 }

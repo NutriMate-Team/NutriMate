@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
 import { WaterService } from './water.service';
 import { WaterController } from './water.controller';
+import { WebsocketModule } from '../websocket/websocket.module';
 
 @Module({
-  imports: [],
+  imports: [WebsocketModule],
   controllers: [WaterController],
   providers: [WaterService],
 })

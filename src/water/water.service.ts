@@ -2,13 +2,20 @@ import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/commo
 import { PrismaService } from 'src/prisma/prisma.services';
 import { CreateWaterLogDto } from './dto/create-water-log.dto';
 import { UpdateWaterGoalDto } from './dto/update-water-goal.dto';
+import { NotificationService } from '../websocket/notification.service';
 
 @Injectable()
 export class WaterService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(WaterService.name);
   private reminderTimer?: NodeJS.Timeout;
+  private notificationService: NotificationService;
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    notificationService: NotificationService,
+  ) {
+    this.notificationService = notificationService;
+  }
 
   async onModuleInit() {
     // Basic in-process reminder loop (non-persistent; suitable for simple reminders)
@@ -79,6 +86,7 @@ export class WaterService implements OnModuleInit, OnModuleDestroy {
           const recent = await this.prisma.waterLog.findFirst({ where: { userId: g.userId, loggedAt: { gte: since } } });
           if (!recent) {
             this.logger.log(`Reminder: user ${g.userId} should drink water now.`);
+            this.notificationService.emitReminder(g.userId, 'Time to drink water!');
           }
         }
       }
